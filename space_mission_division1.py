@@ -1,3 +1,4 @@
+# Variables for the mission status
 mission_day = 1
 mission_length = 14
 crew_size = 4
@@ -9,6 +10,9 @@ food = 90
 power = 60
 warning_line = 50
 critical_line = 25
+shift_note = 'shift note'
+continue_log = 'no'
+
 
 def reserve_label(amount):
 	if amount <= critical_line:
@@ -33,6 +37,15 @@ print("The crew has four members.")
 
 show_status()
 
-shift_note = input("Enter a short shift note (for example, 'water system checked'): ")
-print("=== Mission Log ===")
-print(shift_note)
+print("=== Mission Menu ===")
+print("L - Write a mission note")
+menu_choice = input("Choose an option: ")
+if menu_choice == "L":
+	shift_note = input("Write your mission note: ")
+	print("=== Mission Log ===")
+	print(shift_note)
+continue_log = input("type yes to continue or no to exit: ")
+if continue_log.lower() == 'yes':
+    print("Continuing the mission log...")
+else:
+    print("=== End of Log ===")
