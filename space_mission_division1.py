@@ -35,17 +35,42 @@ print("Welcome to Lunar Horizon Mission Control.")
 print("This is mission day 1 of 14.")
 print("The crew has four members.")
 
-show_status()
+mission_log = []
 
-print("=== Mission Menu ===")
-print("L - Write a mission note")
-menu_choice = input("Choose an option: ")
-if menu_choice == "L":
-	shift_note = input("Write your mission note: ")
-	print("=== Mission Log ===")
-	print(shift_note)
-continue_log = input("type yes to continue or no to exit: ")
-if continue_log.lower() == 'yes':
-    print("Continuing the mission log...")
-else:
-    print("=== End of Log ===")
+while True:
+	print("=== Mission Menu ===")
+	print("L - Open the Mission Log")
+	print("S - Show the whole Mission Log")
+	print("V - View mission status")
+	print("X - Exit the console")
+	menu_choice = input("Choose an option: ").strip().upper()
+	if menu_choice == "L":
+		while True:
+			shift_note = input("Write your mission note: ")
+			mission_log.append(shift_note)
+			print("=== Mission Log ===")
+			print(shift_note)
+			while True:
+				print("=== Mission Log Options ===")
+				print("L - Write another note")
+				print("M - Return to the Mission Menu")
+				log_choice = input("Choose a log option: ").strip().upper()
+				if log_choice in ("L", "M"):
+					break
+				print("Please choose L or M.")
+			if log_choice == "M":
+				break
+	elif menu_choice == "S":
+		print("=== Mission Log ===")
+		if mission_log:
+			for note_number, note in enumerate(mission_log, start=1):
+				print(f"{note_number}. {note}")
+		else:
+			print("No notes have been written this run.")
+	elif menu_choice == "V":
+		show_status()
+	elif menu_choice == "X":
+		print("=== End of Log ===")
+		break
+	else:
+		print("Please choose L, S, V, or X.")
