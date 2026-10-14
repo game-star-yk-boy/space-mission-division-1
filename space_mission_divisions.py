@@ -1,7 +1,7 @@
 # Variables for the mission status
 mission_day = 1
-mission_length = 14
-crew_size = 4
+mission_length = int(input("How many days is the mission? "))
+crew_size = int(input("How many crew members? "))
 
 # These are fictional classroom practice points, not engineering limits.
 oxygen = 80
@@ -86,8 +86,8 @@ def show_supply_forecast():
 		print(f"{supply_name}: supports {full_days_supported} full days; {coverage}")
 
 print("Welcome to Lunar Horizon Mission Control.")
-print("This is mission day 1 of 14.")
-print("The crew has four members.")
+print("This is mission day " + str(mission_day) + " of " + str(mission_length) + ".")
+print("The crew has " + str(crew_size) + " members.")
 
 mission_log = []
 
@@ -103,7 +103,7 @@ while True:
 	if menu_choice == "L":
 		while True:
 			shift_note = input("Write your mission note: ")
-			mission_log.append(shift_note)
+			mission_log.append((mission_day, shift_note))
 			print("=== Mission Log ===")
 			print(shift_note)
 			while True:
@@ -119,8 +119,8 @@ while True:
 	elif menu_choice == "S":
 		print("=== Mission Log ===")
 		if mission_log:
-			for note_number, note in enumerate(mission_log, start=1):
-				print(f"{note_number}. {note}")
+			for note_number, (note_day, note) in enumerate(mission_log, start=1):
+				print(f"{note_number}. Day {note_day}: {note}")
 		else:
 			print("No notes have been written this run.")
 	elif menu_choice == "V":
