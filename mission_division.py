@@ -40,6 +40,23 @@ def show_status():
 	print(f"Food reserve: {food} ({reserve_label(food)})")
 	print(f"Power reserve: {power} ({reserve_label(power)})")
 
+def calculate_daily_needs():
+	oxygen_needed = crew_size * oxygen_use_per_crew_member_per_day
+	gross_water_used = crew_size * water_use_per_crew_member_per_day
+	water_recovered = int(gross_water_used * water_recovery_fraction)
+	net_water_drawn = gross_water_used - water_recovered
+	food_needed = crew_size * food_use_per_crew_member_per_day
+	power_needed = life_support_power_use_per_day
+	return {
+		"oxygen_needed": oxygen_needed,
+		"gross_water_used": gross_water_used,
+		"water_recovered": water_recovered,
+		"net_water_drawn": net_water_drawn,
+		"food_needed": food_needed,
+		"power_needed": power_needed,
+	}
+
+
 print("Welcome to Lunar Horizon Mission Control.")
 print("This is mission day 1 of 14.")
 print("The crew has four members.")
