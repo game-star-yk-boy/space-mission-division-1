@@ -10,6 +10,15 @@ food = 90
 power = 60
 warning_line = 50
 critical_line = 25
+
+# These are invented practice values, not engineering standards.
+oxygen_use_per_crew_member_per_day = 1
+water_use_per_crew_member_per_day = 2
+water_recovery_fraction = 0.5
+food_use_per_crew_member_per_day = 1
+life_support_power_use_per_day = 4
+mission_complete = False
+
 shift_note = 'shift note'
 continue_log = 'no'
 
@@ -26,7 +35,7 @@ def show_status():
 	print("=== Mission Status ===")
 	print(f"Mission day: {mission_day} of {mission_length}")
 	print(f"Crew members: {crew_size}")
-    print(f"Oxygen reserve: {oxygen} ({reserve_label(oxygen)})")
+	print(f"Oxygen reserve: {oxygen} ({reserve_label(oxygen)})")
 	print(f"Water reserve: {water} ({reserve_label(water)})")
 	print(f"Food reserve: {food} ({reserve_label(food)})")
 	print(f"Power reserve: {power} ({reserve_label(power)})")
