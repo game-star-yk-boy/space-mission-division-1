@@ -33,3 +33,7 @@ print("This is mission day 1 of 14.")
 print("The crew has four members.")
 
 show_status()
+
+shift_note = input("Enter a short shift note (for example, 'water system checked'): ")
+print("=== Mission Log ===")
+print(shift_note)
