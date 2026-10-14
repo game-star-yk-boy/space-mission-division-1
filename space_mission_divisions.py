@@ -96,6 +96,8 @@ while True:
 	print("L - Open the Mission Log")
 	print("S - Show the whole Mission Log")
 	print("V - View mission status")
+	print("A - Simulate one life-support day")
+	print("F - Forecast life-support supplies")
 	print("X - Exit the console")
 	menu_choice = input("Choose an option: ").strip().upper()
 	if menu_choice == "L":
@@ -123,8 +125,42 @@ while True:
 			print("No notes have been written this run.")
 	elif menu_choice == "V":
 		show_status()
+	elif menu_choice == "A":
+		if mission_complete:
+			print("Mission is already complete. No supplies were used.")
+		else:
+			daily_needs = calculate_daily_needs()
+			supplies = [
+				("Oxygen", oxygen, daily_needs["oxygen_needed"]),
+				("Water", water, daily_needs["net_water_drawn"]),
+				("Food", food, daily_needs["food_needed"]),
+				("Power", power, daily_needs["power_needed"]),
+			]
+			shortfalls = [
+				(supply_name, reserve_amount, daily_need)
+				for supply_name, reserve_amount, daily_need in supplies
+				if reserve_amount < daily_need
+			]
+			if shortfalls:
+				print(f"Mission day {mission_day} was not simulated; reserves are unchanged.")
+				print("Supplies needing attention:")
+				for supply_name, reserve_amount, daily_need in shortfalls:
+					print(f"{supply_name}: have {reserve_amount}, need {daily_need}.")
+			else:
+				print(f"Mission day {mission_day} simulated successfully.")
+				oxygen -= daily_needs["oxygen_needed"]
+				water -= daily_needs["net_water_drawn"]
+				food -= daily_needs["food_needed"]
+				power -= daily_needs["power_needed"]
+				if mission_day == mission_length:
+					mission_complete = True
+					print("Mission complete!")
+				else:
+					mission_day += 1
+	elif menu_choice == "F":
+		show_supply_forecast()
 	elif menu_choice == "X":
 		print("=== End of Log ===")
 		break
 	else:
-		print("Please choose L, S, V, or X.")
+		print("Please choose L, S, V, A, F, or X.")
