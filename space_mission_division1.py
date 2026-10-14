@@ -10,6 +10,15 @@ food = 90
 power = 60
 warning_line = 50
 critical_line = 25
+
+# These are invented practice values, not engineering standards.
+oxygen_use_per_crew_member_per_day = 1
+water_use_per_crew_member_per_day = 2
+water_recovery_fraction = 0.5
+food_use_per_crew_member_per_day = 1
+life_support_power_use_per_day = 4
+mission_complete = False
+
 shift_note = 'shift note'
 continue_log = 'no'
 
