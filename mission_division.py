@@ -56,6 +56,35 @@ def calculate_daily_needs():
 		"power_needed": power_needed,
 	}
 
+def show_supply_forecast():
+	print("=== Supply Forecast ===")
+	if mission_complete:
+		mission_days_remaining = 0
+		print("No mission days remain.")
+	else:
+		mission_days_remaining = mission_length - mission_day + 1
+		print(f"Mission days remaining, including today: {mission_days_remaining}")
+
+	daily_needs = calculate_daily_needs()
+	supplies = [
+		("Oxygen", oxygen, daily_needs["oxygen_needed"]),
+		("Water", water, daily_needs["net_water_drawn"]),
+		("Food", food, daily_needs["food_needed"]),
+		("Power", power, daily_needs["power_needed"]),
+	]
+
+	for supply_name, reserve_amount, daily_need in supplies:
+		if daily_need == 0:
+			print(f"{supply_name}: daily need is zero; no division needed. COVERED")
+			continue
+
+		full_days_supported = reserve_amount // daily_need
+		if full_days_supported >= mission_days_remaining:
+			coverage = "COVERED"
+		else:
+			coverage = "SHORTFALL"
+		print(f"{supply_name}: supports {full_days_supported} full days; {coverage}")
+
 
 print("Welcome to Lunar Horizon Mission Control.")
 print("This is mission day 1 of 14.")
