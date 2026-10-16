@@ -54,6 +54,7 @@ oxygen_use_per_crew_member_per_day = 3
 water_use_per_crew_member_per_day = 4
 water_recovery_fraction = 0.5
 food_use_per_crew_member_per_day = 3
+starting_food_per_crew_member_per_shift = 2
 life_support_power_use_per_day = 3 + crew_size
 water_recovery_power_use = 1
 greenhouse_enabled = False
@@ -68,8 +69,8 @@ shifts_to_stock = mission_length + extra_supply_shifts
 oxygen = oxygen_use_per_crew_member_per_day * crew_size * shifts_to_stock
 gross_water_per_crew_member_per_shift = water_use_per_crew_member_per_day
 net_water_per_crew_member_per_shift = gross_water_per_crew_member_per_shift * (1 - water_recovery_fraction)
-water = int(net_water_per_crew_member_per_shift * crew_size * shifts_to_stock)
-food = food_use_per_crew_member_per_day * crew_size * shifts_to_stock
+water = oxygen
+food = starting_food_per_crew_member_per_shift * crew_size * shifts_to_stock
 power = 60
 
 # These values are made up for practice, not engineering or medical limits.
