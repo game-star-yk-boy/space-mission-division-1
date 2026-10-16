@@ -9,8 +9,8 @@ crew_size = int(input("How many crew members? "))
 
 # These are fictional classroom practice points, not engineering limits.
 oxygen = 80
-water = 70
-food = 90
+water = 90
+food = 70
 power = 60
 warning_line = 50
 critical_line = 25
