@@ -7,6 +7,57 @@ st.set_page_config(
 	layout="wide",
 	initial_sidebar_state="expanded",
 )
+
+# A colorful control-room theme: dark space, bright planets, and readable panels.
+st.markdown("""
+<style>
+.stApp {
+    background: radial-gradient(ellipse at top, #263b70 0%, #111a35 48%, #090d1c 100%);
+    color: #f5f7ff;
+}
+[data-testid="stHeader"] { background: rgba(0, 0, 0, 0); }
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #18264b 0%, #10182f 100%);
+    border-right: 2px solid #40d9ff;
+}
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, rgba(46, 73, 125, .95), rgba(31, 44, 83, .95));
+    border: 1px solid #5b83d6;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
+}
+[data-baseweb="tab-list"] { gap: 8px; }
+[data-baseweb="tab"] {
+    background: #202f59;
+    border-radius: 10px 10px 0 0;
+    padding: 8px 14px;
+}
+[aria-selected="true"][data-baseweb="tab"] {
+    background: #40d9ff;
+    color: #10182f;
+}
+.stButton > button, [data-testid="stFormSubmitButton"] button {
+    background: linear-gradient(90deg, #6049d8, #a34bd1);
+    color: white;
+    border: 1px solid #c7a5ff;
+    border-radius: 11px;
+    font-weight: 700;
+}
+.stButton > button:hover, [data-testid="stFormSubmitButton"] button:hover {
+    background: linear-gradient(90deg, #138dbb, #21b9a8);
+    border-color: #7df5e5;
+    color: white;
+}
+[data-testid="stExpander"] {
+    background: rgba(31, 47, 88, .75);
+    border: 1px solid #526eaf;
+    border-radius: 12px;
+}
+h1, h2, h3 { color: #8be9ff !important; }
+</style>
+""", unsafe_allow_html=True)
+
 difficulty_profiles = {
 	"E": {
 		"difficulty": "Easy",
@@ -38,15 +89,15 @@ if "mission_started" not in st.session_state:
 	st.session_state["mission_started"] = False
 
 if not st.session_state["mission_started"]:
-	st.title("Lunar Horizon Mission Control")
-	st.write("Before the mission appears, choose your difficulty level.")
+	st.title("🌙🚀 Lunar Horizon Mission Control")
+	st.write("✨ Before the mission appears, choose your difficulty level.")
 	chosen_difficulty = st.selectbox(
-		"How challenging should your mission be?",
-		("Choose a difficulty...", "Easy", "Medium", "Hard"),
+		"🎚️ How challenging should your mission be?",
+		("Choose a difficulty...", "🟢 Easy", "🟡 Medium", "🔴 Hard"),
 		key="setup_difficulty",
 	)
 	if chosen_difficulty != "Choose a difficulty...":
-		difficulty_codes = {"Easy": "E", "Medium": "M", "Hard": "H"}
+		difficulty_codes = {"🟢 Easy": "E", "🟡 Medium": "M", "🔴 Hard": "H"}
 		st.session_state["difficulty_choice"] = difficulty_codes[chosen_difficulty]
 		st.session_state["mission_started"] = True
 		st.session_state["mission_difficulty_choice"] = None
@@ -54,8 +105,8 @@ if not st.session_state["mission_started"]:
 	st.stop()
 
 difficulty_choice = st.session_state["difficulty_choice"]
-st.title("Lunar Horizon Mission Control")
-st.caption("Mission in progress")
+st.title("🌙🚀 Lunar Horizon Mission Control")
+st.caption("🛰️ Mission in progress — every choice counts!")
 
 selected_profile = difficulty_profiles[difficulty_choice]
 difficulty = selected_profile["difficulty"]
@@ -123,6 +174,8 @@ if st.session_state.get("mission_difficulty_choice") != difficulty_choice:
 		"delivery_pending": False,
 		"equipment_breakdown_pending": False,
 		"mission_log": [],
+		"mission_history": [],
+		"current_shift_record": None,
 		"pending_response_word": None,
 		"pending_response_deadline": None,
 		"console_exited": False,
@@ -150,6 +203,8 @@ emergency_delivery_used = st.session_state["emergency_delivery_used"]
 delivery_pending = st.session_state["delivery_pending"]
 equipment_breakdown_pending = st.session_state["equipment_breakdown_pending"]
 mission_log = st.session_state["mission_log"]
+mission_history = st.session_state["mission_history"]
+current_shift_record = st.session_state["current_shift_record"]
 pending_response_word = st.session_state["pending_response_word"]
 pending_response_deadline = st.session_state["pending_response_deadline"]
 
@@ -176,6 +231,45 @@ def record_abort(reason):
 	mission_aborted = st.session_state["mission_aborted"]
 	abort_reason = st.session_state["abort_reason"]
 	abort_day = st.session_state["abort_day"]
+
+def reserve_snapshot():
+	return {
+		"Oxygen": oxygen,
+		"Water": water,
+		"Food": food,
+		"Battery": power,
+	}
+
+def record_resource_change(resource, amount, reason):
+	if current_shift_record is not None and amount != 0:
+		current_shift_record["changes"].append({
+			"resource": resource,
+			"amount": amount,
+			"reason": reason,
+		})
+
+def save_history_record(record, note=None):
+	if note:
+		record["notes"].append(note)
+	record["ending_reserves"] = reserve_snapshot()
+	mission_history.append(record)
+	st.session_state["mission_history"] = mission_history
+
+def record_resource_action(day, event, starting_reserves, resource, amount, reason, note):
+	save_history_record({
+		"day": day,
+		"event": event,
+		"changes": [{"resource": resource, "amount": amount, "reason": reason}],
+		"notes": [],
+		"starting_reserves": starting_reserves,
+	}, note)
+
+def finish_current_shift_history(note=None):
+	global current_shift_record
+	if current_shift_record is not None:
+		save_history_record(current_shift_record, note)
+		current_shift_record = None
+		st.session_state["current_shift_record"] = None
 
 def show_final_result():
 	if mission_aborted:
@@ -233,7 +327,8 @@ def save_game_state():
 		"greenhouse_grow_shifts", "optional_science_enabled", "science_observations",
 		"science_findings", "rover_data", "repair_kit_available", "repair_pending",
 		"emergency_delivery_used", "delivery_pending", "equipment_breakdown_pending",
-		"mission_log", "pending_response_word", "pending_response_deadline",
+		"mission_log", "mission_history", "current_shift_record",
+		"pending_response_word", "pending_response_deadline",
 	):
 		st.session_state[state_name] = globals()[state_name]
 
@@ -244,6 +339,8 @@ def finish_shift(trade_choices):
 			if power - critical_trade_battery_cost >= critical_line:
 				globals()[supply_name] += critical_trade_supply_amount
 				globals()["power"] -= critical_trade_battery_cost
+				record_resource_change(supply_name.title(), critical_trade_supply_amount, "Supply trade")
+				record_resource_change("Battery", -critical_trade_battery_cost, "Supply trade")
 				st.success(f"Trade complete: added 15 {supply_name} for 20 battery points.")
 			else:
 				st.warning(f"Trade unavailable for {supply_name}; battery must stay at or above the critical line.")
@@ -261,6 +358,7 @@ def finish_shift(trade_choices):
 		st.session_state["mission_complete"] = True
 	else:
 		mission_day += 1
+	finish_current_shift_history()
 	save_game_state()
 
 def simulate_shift(trade_choices):
@@ -269,6 +367,7 @@ def simulate_shift(trade_choices):
 	global delivery_pending, emergency_delivery_used, equipment_breakdown_pending
 	global optional_science_enabled, science_observations, science_findings
 	global mission_aborted, abort_reason, abort_day, pending_response_word, pending_response_deadline
+	global current_shift_record
 
 	if mission_aborted or mission_complete:
 		st.info("The mission is stopped; no shift was simulated.")
@@ -289,24 +388,56 @@ def simulate_shift(trade_choices):
 	if shortfalls:
 		record_abort(f"Not enough {', '.join(shortfalls)} to meet this shift's requirements.")
 		st.error(f"Shift stopped: not enough {', '.join(shortfalls)}.")
+		save_history_record({
+			"day": mission_day,
+			"event": "Shift attempt",
+			"changes": [],
+			"notes": [f"Shift not completed because of a shortfall in {', '.join(shortfalls)}. Supplies were unchanged."],
+			"starting_reserves": reserve_snapshot(),
+		})
 		save_game_state()
 		return
 
+	current_shift_record = {
+		"day": mission_day,
+		"event": "Life-support shift",
+		"changes": [],
+		"notes": [],
+		"starting_reserves": reserve_snapshot(),
+	}
+	st.session_state["current_shift_record"] = current_shift_record
 	st.success(f"Mission day {mission_day} simulated successfully.")
+	solar_added = temporary_battery - power
+	record_resource_change("Battery", solar_added, "Solar charging")
 	temporary_battery -= daily_needs["power_needed"]
+	record_resource_change("Battery", -life_support_power_use_per_day, "Life support power")
+	if daily_needs["recycler_status"] == "ON":
+		record_resource_change("Battery", -water_recovery_power_use, "Water recycler power")
+	if greenhouse_enabled:
+		record_resource_change("Battery", -greenhouse_power_cost, "Greenhouse power")
 	oxygen -= daily_needs["oxygen_needed"]
-	water -= daily_needs["net_water_drawn"]
+	record_resource_change("Oxygen", -daily_needs["oxygen_needed"], "Crew use")
+	water -= daily_needs["gross_water_used"]
+	record_resource_change("Water", -daily_needs["gross_water_used"], "Crew use")
+	water += daily_needs["water_recovered"]
+	record_resource_change("Water", daily_needs["water_recovered"], "Water recycler recovery")
+	if greenhouse_enabled:
+		water -= greenhouse_water_cost
+		record_resource_change("Water", -greenhouse_water_cost, "Greenhouse use")
 	food -= daily_needs["food_needed"]
+	record_resource_change("Food", -daily_needs["food_needed"], "Crew use")
 	if greenhouse_enabled:
 		greenhouse_grow_shifts += 1
 		if greenhouse_grow_shifts >= greenhouse_harvest_after:
 			food += greenhouse_food_reward
+			record_resource_change("Food", greenhouse_food_reward, "Greenhouse harvest")
 			greenhouse_grow_shifts = 0
 			st.success(f"Greenhouse harvest added {greenhouse_food_reward} food points.")
 
 	if repair_pending:
 		if temporary_battery - 2 >= critical_line:
 			temporary_battery -= 2
+			record_resource_change("Battery", -2, "Solar repair")
 			repair_kit_available = False
 			repair_pending = False
 			st.success("Solar fault repaired.")
@@ -315,6 +446,7 @@ def simulate_shift(trade_choices):
 	elif delivery_pending:
 		if temporary_battery - emergency_delivery_cost >= critical_line:
 			temporary_battery -= emergency_delivery_cost
+			record_resource_change("Battery", -emergency_delivery_cost, "Emergency support")
 			delivery_pending = False
 			emergency_delivery_used = True
 			if equipment_breakdown_pending:
@@ -328,6 +460,7 @@ def simulate_shift(trade_choices):
 			st.warning("Science instrument unavailable today due to the day-5 fault.")
 		elif temporary_battery - science_power >= critical_line:
 			temporary_battery -= science_power
+			record_resource_change("Battery", -science_power, "Science instrument")
 			science_observations += 1
 			finding = random.choice(science_finding_options)
 			science_findings.append((mission_day, finding))
@@ -365,11 +498,13 @@ def handle_emergency_response(response, trade_choices):
 	if time.monotonic() > pending_response_deadline:
 		record_abort(f"Timed response for {pending_response_word} expired.")
 		st.error("Time expired. The mission has stopped.")
+		finish_current_shift_history(f"Shift ended because the {pending_response_word} response timer expired.")
 	else:
 		if response.strip().upper() == pending_response_word:
 			if mission_day == mission_length:
 				if power - emergency_delivery_cost >= critical_line:
 					power -= emergency_delivery_cost
+					record_resource_change("Battery", -emergency_delivery_cost, "Final-shift emergency support")
 					emergency_delivery_used = True
 					equipment_breakdown_pending = False
 					st.success("Final-shift emergency help arrived and repaired the equipment.")
@@ -378,9 +513,13 @@ def handle_emergency_response(response, trade_choices):
 					st.warning("Help could not arrive without crossing the critical battery line; no shifts remain.")
 			else:
 				delivery_pending = True
+				if current_shift_record is not None:
+					current_shift_record["notes"].append("Emergency support was requested; its battery cost is recorded on the next shift.")
 				st.success("Emergency help requested. It will cost 10 battery points after a successful shift.")
 		else:
 			st.info(f"The exact word {pending_response_word} was not entered. No help was requested.")
+			if current_shift_record is not None:
+				current_shift_record["notes"].append("The emergency response word was incorrect; no help was requested.")
 	pending_response_word = None
 	pending_response_deadline = None
 	if not mission_aborted:
@@ -429,24 +568,24 @@ trade_choices = {}
 
 with st.sidebar:
 	st.divider()
-	st.header("Mission Actions")
-	with st.expander("Space trade choices"):
+	st.header("🎮 Mission Actions")
+	with st.expander("🔄 Space trade choices"):
 		st.caption("Choose what to trade only if a reserve reaches the critical line after a shift.")
 		for supply_name in ("oxygen", "water", "food"):
 			trade_choices[supply_name] = st.selectbox(
-				f"Trade battery for {supply_name}?",
+				f"🔋 Trade battery for {supply_name}?",
 				("No trade", "Trade"),
 				key=f"trade_{supply_name}",
 				disabled=pending_response,
 			)
 
-	if st.button("Simulate one shift", disabled=pending_response, use_container_width=True):
+	if st.button("📅 Simulate one shift", disabled=pending_response, use_container_width=True):
 		simulate_shift(trade_choices)
-	show_forecast = st.button("Forecast supplies", disabled=pending_response, use_container_width=True)
-	if st.button("Toggle greenhouse", disabled=pending_response, use_container_width=True):
+	show_forecast = st.button("🔭 Forecast supplies", disabled=pending_response, use_container_width=True)
+	if st.button("🌱 Toggle greenhouse", disabled=pending_response, use_container_width=True):
 		greenhouse_enabled = not greenhouse_enabled
 		st.session_state["greenhouse_enabled"] = greenhouse_enabled
-	if st.button("Run rover survey", disabled=pending_response, use_container_width=True):
+	if st.button("🤖 Run rover survey", disabled=pending_response, use_container_width=True):
 		if mission_aborted or mission_complete:
 			st.info("Rover survey unavailable; the mission is stopped.")
 		elif mission_day in shadow_days:
@@ -454,17 +593,29 @@ with st.sidebar:
 		elif power - rover_survey_power_cost < critical_line:
 			st.warning("Rover survey blocked; spending 8 battery points would cross the critical line.")
 		else:
+			reserves_before_survey = reserve_snapshot()
 			power -= rover_survey_power_cost
 			if random.random() < 0.7:
 				rover_data += 1
 				st.success("Rover returned useful survey data.")
+				outcome_note = "Rover returned useful survey data."
 			else:
 				st.info("Rover returned without usable data.")
+				outcome_note = "Rover returned without usable data."
+			record_resource_action(
+				mission_day,
+				"Rover survey",
+				reserves_before_survey,
+				"Battery",
+				-rover_survey_power_cost,
+				"Rover survey power",
+				outcome_note,
+			)
 			save_game_state()
-	if st.button("Toggle science", disabled=pending_response, use_container_width=True):
+	if st.button("🧪 Toggle science", disabled=pending_response, use_container_width=True):
 		optional_science_enabled = not optional_science_enabled
 		st.session_state["optional_science_enabled"] = optional_science_enabled
-	if st.button("Request solar repair", disabled=pending_response, use_container_width=True):
+	if st.button("🛠️ Request solar repair", disabled=pending_response, use_container_width=True):
 		if mission_day < 3:
 			st.info("No solar fault has happened yet; repair is available from day 3.")
 		elif not repair_kit_available:
@@ -475,11 +626,11 @@ with st.sidebar:
 			repair_pending = True
 			st.session_state["repair_pending"] = repair_pending
 			st.success("Solar repair requested; it will be attempted after a successful shift.")
-	show_status = st.button("View mission status", disabled=pending_response, use_container_width=True)
-	show_guide = st.button("Show game guide", disabled=pending_response, use_container_width=True)
-	if st.button("Abort mission", disabled=pending_response, use_container_width=True):
+	show_status = st.button("📊 View mission status", disabled=pending_response, use_container_width=True)
+	show_guide = st.button("📖 Show game guide", disabled=pending_response, use_container_width=True)
+	if st.button("🛑 Abort mission", disabled=pending_response, use_container_width=True):
 		record_abort("Mission stopped by operator.")
-	if st.button("Exit console", disabled=pending_response, use_container_width=True):
+	if st.button("🚪 Exit console", disabled=pending_response, use_container_width=True):
 		st.session_state["console_exited"] = True
 		st.rerun()
 
@@ -491,24 +642,24 @@ with st.sidebar:
 				f"Type {response_word} to request emergency help",
 				key=f"emergency_response_text_{mission_day}_{response_word}",
 			)
-			response_submitted = st.form_submit_button("Send emergency response")
+			response_submitted = st.form_submit_button("📡 Send emergency response")
 		if response_submitted:
 			handle_emergency_response(response_text, trade_choices)
 
-briefing_tab, data_tab, systems_tab, log_tab = st.tabs(
-	("Mission Briefing", "Mission Data", "Mission Systems", "Mission Log")
+briefing_tab, data_tab, systems_tab, log_tab, history_tab = st.tabs(
+	("📋 Mission Briefing", "📊 Mission Data", "⚙️ Mission Systems", "📝 Mission Log", "📚 Mission History")
 )
 
 with briefing_tab:
-	st.subheader("Mission Briefing")
-	st.write(f"Difficulty: {difficulty}")
-	st.write(f"Mission day: {mission_day} of {mission_length}")
-	st.write(f"Crew members: {crew_size}")
-	st.write(f"Extra supply shifts: {extra_supply_shifts}")
-	st.write(f"Scheduled solar-generation days: {mission_length - len(shadow_days)} of {mission_length}")
-	st.write(f"Mission status: {'Aborted' if mission_aborted else 'Complete' if mission_complete else 'In progress'}")
+	st.subheader("📋 Mission Briefing")
+	st.write(f"🎚️ Difficulty: {difficulty}")
+	st.write(f"📅 Mission day: {mission_day} of {mission_length}")
+	st.write(f"👩‍🚀 Crew members: {crew_size}")
+	st.write(f"📦 Extra supply shifts: {extra_supply_shifts}")
+	st.write(f"☀️ Scheduled solar-generation days: {mission_length - len(shadow_days)} of {mission_length}")
+	st.write(f"🚦 Mission status: {'Aborted' if mission_aborted else 'Complete' if mission_complete else 'In progress'}")
 	if mission_complete or mission_aborted:
-		st.subheader("Mission Result")
+		st.subheader("🏁 Mission Result")
 		result = show_final_result()
 		if mission_aborted:
 			st.error(f"{result} (day {abort_day})")
@@ -518,17 +669,17 @@ with briefing_tab:
 			st.error(result or "Mission ended without a result.")
 
 with data_tab:
-	st.subheader("Supplies")
+	st.subheader("📦 Supplies")
 	oxygen_column, water_column, food_column, power_column = st.columns(4)
-	oxygen_column.metric("Oxygen", oxygen)
-	water_column.metric("Water", water)
-	food_column.metric("Food", food)
-	power_column.metric("Battery", f"{power}/{battery_capacity}")
+	oxygen_column.metric("🫁 Oxygen", oxygen)
+	water_column.metric("💧 Water", water)
+	food_column.metric("🥫 Food", food)
+	power_column.metric("🔋 Battery", f"{power}/{battery_capacity}")
 
-	st.subheader("Mission Data")
+	st.subheader("🧭 Mission Data")
 	rover_column, science_column = st.columns(2)
-	rover_column.metric("Rover data", rover_data)
-	science_column.metric("Science observations", science_observations)
+	rover_column.metric("🤖 Rover data", rover_data)
+	science_column.metric("🔬 Science observations", science_observations)
 	if science_findings:
 		for finding_day, finding in science_findings:
 			st.write(f"Science finding from day {finding_day}: {finding}.")
@@ -575,15 +726,15 @@ with data_tab:
 					)
 
 with systems_tab:
-	st.subheader("Mission Systems")
-	st.write(f"Greenhouse: {'On' if greenhouse_enabled else 'Off'} ({greenhouse_grow_shifts}/{greenhouse_harvest_after} shifts toward harvest)")
-	st.write(f"Science instrument requested: {'Yes' if optional_science_enabled else 'No'}")
-	st.write(f"Solar generation today: {solar_generation_for_day(mission_day)} points")
-	st.write(f"Solar repair kit available: {'Yes' if repair_kit_available else 'No'}")
-	st.write(f"Solar repair pending: {'Yes' if repair_pending else 'No'}")
-	st.write(f"Emergency help pending: {'Yes' if delivery_pending else 'No'}")
+	st.subheader("⚙️ Mission Systems")
+	st.write(f"🌱 Greenhouse: {'On' if greenhouse_enabled else 'Off'} ({greenhouse_grow_shifts}/{greenhouse_harvest_after} shifts toward harvest)")
+	st.write(f"🔬 Science instrument requested: {'Yes' if optional_science_enabled else 'No'}")
+	st.write(f"☀️ Solar generation today: {solar_generation_for_day(mission_day)} points")
+	st.write(f"🧰 Solar repair kit available: {'Yes' if repair_kit_available else 'No'}")
+	st.write(f"🛠️ Solar repair pending: {'Yes' if repair_pending else 'No'}")
+	st.write(f"📡 Emergency help pending: {'Yes' if delivery_pending else 'No'}")
 	if show_guide:
-		st.subheader("Game Guide")
+		st.subheader("📖 Game Guide")
 		st.write("Finish the planned shifts with enough oxygen, water, food, battery, and rover data to earn a medal.")
 		st.write("The recycler recovers half the water and uses 1 battery point only when the battery is above the warning line. Otherwise, it pauses.")
 		st.write("Greenhouse costs 2 water and 2 battery points on each successful shift. Three successful shifts add 10 food points.")
@@ -596,10 +747,10 @@ with systems_tab:
 		st.write(f"Medals require at least {medal_data['Bronze']} rover data for Bronze, with higher targets for Silver and Gold. Each main supply and battery must finish above {supply_minimum}.")
 
 with log_tab:
-	st.subheader("Mission Log")
+	st.subheader("📝 Mission Log")
 	with st.form("mission_note_form", clear_on_submit=True):
-		note_text = st.text_area("Write a mission note", disabled=pending_response)
-		save_note = st.form_submit_button("Save mission note", disabled=pending_response)
+		note_text = st.text_area("✍️ Write a mission note", disabled=pending_response)
+		save_note = st.form_submit_button("💾 Save mission note", disabled=pending_response)
 	if save_note:
 		if note_text.strip():
 			mission_log.append((mission_day, note_text.strip()))
@@ -612,3 +763,40 @@ with log_tab:
 			st.write(f"{note_number}. Day {note_day}: {note}")
 	else:
 		st.info("No mission notes have been written.")
+
+with history_tab:
+	st.subheader("📚 Mission History")
+	st.write("Each row is a mission day. Positive numbers were added; negative numbers were used.")
+	if mission_history:
+		resources = ("Oxygen", "Water", "Food", "Battery")
+		changes_by_day = {}
+		notes_by_day = {}
+		for entry in mission_history:
+			day = entry["day"]
+			if day not in changes_by_day:
+				changes_by_day[day] = {resource: [] for resource in resources}
+				notes_by_day[day] = []
+			for change in entry["changes"]:
+				amount = change["amount"]
+				if amount > 0:
+					change_text = f"+{amount} ({change['reason']})"
+				else:
+					change_text = f"−{abs(amount)} ({change['reason']})"
+				changes_by_day[day][change["resource"]].append(change_text)
+			notes_by_day[day].extend(entry["notes"])
+
+		table_rows = []
+		for day in sorted(changes_by_day):
+			row = {"Day": f"Day {day}"}
+			for resource in resources:
+				resource_changes = changes_by_day[day][resource]
+				row[resource] = "; ".join(resource_changes) if resource_changes else "No change"
+			table_rows.append(row)
+		st.table(table_rows)
+
+		with st.expander("Shift events and notes"):
+			for day in sorted(notes_by_day):
+				for note in notes_by_day[day]:
+					st.write(f"Day {day}: {note}")
+	else:
+		st.info("No shifts have been recorded yet. Simulate a shift to begin your mission history.")
