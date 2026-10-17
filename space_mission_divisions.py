@@ -1,9 +1,12 @@
-import msvcrt
 import random
 import time
+import streamlit as st
 
-# Variables for the mission status
-mission_day = 1
+st.set_page_config(
+	page_title="Lunar Horizon Mission Control",
+	layout="wide",
+	initial_sidebar_state="expanded",
+)
 difficulty_profiles = {
 	"E": {
 		"difficulty": "Easy",
@@ -31,11 +34,28 @@ difficulty_profiles = {
 	},
 }
 
-while True:
-	difficulty_choice = input("Choose Easy, Medium, or Hard (E/M/H): ").strip().upper()
-	if difficulty_choice in difficulty_profiles:
-		break
-	print("Please enter E, M, or H.")
+if "mission_started" not in st.session_state:
+	st.session_state["mission_started"] = False
+
+if not st.session_state["mission_started"]:
+	st.title("Lunar Horizon Mission Control")
+	st.write("Before the mission appears, choose your difficulty level.")
+	chosen_difficulty = st.selectbox(
+		"How challenging should your mission be?",
+		("Choose a difficulty...", "Easy", "Medium", "Hard"),
+		key="setup_difficulty",
+	)
+	if chosen_difficulty != "Choose a difficulty...":
+		difficulty_codes = {"Easy": "E", "Medium": "M", "Hard": "H"}
+		st.session_state["difficulty_choice"] = difficulty_codes[chosen_difficulty]
+		st.session_state["mission_started"] = True
+		st.session_state["mission_difficulty_choice"] = None
+		st.rerun()
+	st.stop()
+
+difficulty_choice = st.session_state["difficulty_choice"]
+st.title("Lunar Horizon Mission Control")
+st.caption("Mission in progress")
 
 selected_profile = difficulty_profiles[difficulty_choice]
 difficulty = selected_profile["difficulty"]
@@ -45,11 +65,9 @@ extra_supply_shifts = selected_profile["extra_supply_shifts"]
 supply_minimum = selected_profile["supply_minimum"]
 medal_data = selected_profile["medal_data"]
 
-# These are fictional classroom practice points, not engineering limits.
+# These are fictional classroom practice values, not real-world limits.
 warning_line = 50
 critical_line = 25
-
-# These are invented practice values, not engineering standards.
 oxygen_use_per_crew_member_per_day = 3
 water_use_per_crew_member_per_day = 4
 water_recovery_fraction = 0.5
@@ -57,32 +75,14 @@ food_use_per_crew_member_per_day = 3
 starting_food_per_crew_member_per_shift = 2
 life_support_power_use_per_day = 3 + crew_size
 water_recovery_power_use = 1
-greenhouse_enabled = False
-greenhouse_grow_shifts = 0
 greenhouse_water_cost = 2
 greenhouse_power_cost = 2
 greenhouse_harvest_after = 3
 greenhouse_food_reward = 10
-mission_complete = False
-
-shifts_to_stock = mission_length + extra_supply_shifts
-oxygen = oxygen_use_per_crew_member_per_day * crew_size * shifts_to_stock
-gross_water_per_crew_member_per_shift = water_use_per_crew_member_per_day
-net_water_per_crew_member_per_shift = gross_water_per_crew_member_per_shift * (1 - water_recovery_fraction)
-water = oxygen
-food = starting_food_per_crew_member_per_shift * crew_size * shifts_to_stock
-power = 60
-
-# These values are made up for practice, not engineering or medical limits.
 battery_capacity = 80
 normal_solar = 8
-shadow_day_count = random.randint(1, min(3, mission_length - 1))
-shadow_days = set(random.sample(range(1, mission_length + 1), shadow_day_count))
 science_power = 6
 science_fault_day = 5
-optional_science_enabled = False
-science_observations = 0
-science_findings = []
 science_finding_options = (
 	"a possible water-ice signal",
 	"an iron-rich mineral signature",
@@ -90,25 +90,68 @@ science_finding_options = (
 	"a subsurface density anomaly",
 	"a localized magnetic anomaly",
 )
-rover_data = 0
 rover_survey_power_cost = 8
-mission_aborted = False
-abort_reason = None
-abort_day = None
-repair_kit_available = True
-repair_pending = False
-emergency_delivery_used = False
-
-# These are fictional game points, not real delivery capability.
-# These are fictional emergency-help points, not real services.
 emergency_delivery_cost = 10
 critical_trade_battery_cost = 20
 critical_trade_supply_amount = 15
-delivery_pending = False
-equipment_breakdown_pending = False
 
-shift_note = 'shift note'
-continue_log = 'no'
+if st.session_state.get("mission_difficulty_choice") != difficulty_choice:
+	shifts_to_stock = mission_length + extra_supply_shifts
+	initial_oxygen = oxygen_use_per_crew_member_per_day * crew_size * shifts_to_stock
+	shadow_day_count = random.randint(1, min(3, mission_length - 1))
+	st.session_state.update({
+		"mission_difficulty_choice": difficulty_choice,
+		"mission_day": 1,
+		"mission_complete": False,
+		"mission_aborted": False,
+		"abort_reason": None,
+		"abort_day": None,
+		"oxygen": initial_oxygen,
+		"water": initial_oxygen,
+		"food": starting_food_per_crew_member_per_shift * crew_size * shifts_to_stock,
+		"power": 60,
+		"shadow_days": set(random.sample(range(1, mission_length + 1), shadow_day_count)),
+		"greenhouse_enabled": False,
+		"greenhouse_grow_shifts": 0,
+		"optional_science_enabled": False,
+		"science_observations": 0,
+		"science_findings": [],
+		"rover_data": 0,
+		"repair_kit_available": True,
+		"repair_pending": False,
+		"emergency_delivery_used": False,
+		"delivery_pending": False,
+		"equipment_breakdown_pending": False,
+		"mission_log": [],
+		"pending_response_word": None,
+		"pending_response_deadline": None,
+		"console_exited": False,
+	})
+
+mission_day = st.session_state["mission_day"]
+mission_complete = st.session_state["mission_complete"]
+mission_aborted = st.session_state["mission_aborted"]
+abort_reason = st.session_state["abort_reason"]
+abort_day = st.session_state["abort_day"]
+oxygen = st.session_state["oxygen"]
+water = st.session_state["water"]
+food = st.session_state["food"]
+power = st.session_state["power"]
+shadow_days = st.session_state["shadow_days"]
+greenhouse_enabled = st.session_state["greenhouse_enabled"]
+greenhouse_grow_shifts = st.session_state["greenhouse_grow_shifts"]
+optional_science_enabled = st.session_state["optional_science_enabled"]
+science_observations = st.session_state["science_observations"]
+science_findings = st.session_state["science_findings"]
+rover_data = st.session_state["rover_data"]
+repair_kit_available = st.session_state["repair_kit_available"]
+repair_pending = st.session_state["repair_pending"]
+emergency_delivery_used = st.session_state["emergency_delivery_used"]
+delivery_pending = st.session_state["delivery_pending"]
+equipment_breakdown_pending = st.session_state["equipment_breakdown_pending"]
+mission_log = st.session_state["mission_log"]
+pending_response_word = st.session_state["pending_response_word"]
+pending_response_deadline = st.session_state["pending_response_deadline"]
 
 
 def reserve_label(amount):
@@ -124,59 +167,22 @@ def solar_generation_for_day(day):
 		return 0
 	return normal_solar
 
-def timed_repair_input(required_word="REPAIR"):
-	time_limit = 10
-	deadline = time.monotonic() + time_limit
-	response = ""
-	last_displayed_second = None
-	ignore_next_character = False
-	print(f"Type {required_word} within 10 seconds to request emergency help.")
-
-	while True:
-		remaining = deadline - time.monotonic()
-		if remaining <= 0:
-			print("\nTime expired.")
-			return None
-
-		seconds_left = int(remaining) + 1
-		if seconds_left != last_displayed_second:
-			print(f"\rREPAIR ({seconds_left}s): {response:<20}", end="", flush=True)
-			last_displayed_second = seconds_left
-
-		if msvcrt.kbhit():
-			character = msvcrt.getwch()
-			if ignore_next_character:
-				ignore_next_character = False
-			elif character in ("\x00", "\xe0"):
-				ignore_next_character = True
-			elif character in ("\r", "\n"):
-				print()
-				if response.strip().upper() == required_word:
-					return required_word
-				print(f"Only the complete word {required_word} is accepted; no help was requested.")
-				return ""
-			elif character == "\b":
-				response = response[:-1]
-			elif character.isprintable():
-				response += character
-		else:
-			time.sleep(0.05)
-
 def record_abort(reason):
 	global mission_aborted, abort_reason, abort_day
-	if abort_reason is None:
-		abort_reason = reason
-		abort_day = mission_day
-	mission_aborted = True
-	print(f"MISSION FAILED — {abort_reason}")
+	if st.session_state["abort_reason"] is None:
+		st.session_state["abort_reason"] = reason
+		st.session_state["abort_day"] = st.session_state["mission_day"]
+	st.session_state["mission_aborted"] = True
+	mission_aborted = st.session_state["mission_aborted"]
+	abort_reason = st.session_state["abort_reason"]
+	abort_day = st.session_state["abort_day"]
 
 def show_final_result():
 	if mission_aborted:
-		print(f"MISSION FAILED — {abort_reason}")
-		return
+		return f"MISSION FAILED — {abort_reason}"
 
 	if not mission_complete:
-		return
+		return None
 
 	failure_reasons = []
 	if rover_data < medal_data["Bronze"]:
@@ -186,40 +192,12 @@ def show_final_result():
 			failure_reasons.append(f"{supply_name} was not above the required level of {supply_minimum}")
 
 	if failure_reasons:
-		print("MISSION FAILED — " + "; ".join(failure_reasons) + ".")
-		return
+		return "MISSION FAILED — " + "; ".join(failure_reasons) + "."
 
 	for medal_name in ("Gold", "Silver", "Bronze"):
 		if rover_data >= medal_data[medal_name]:
-			print(f"MISSION SUCCESS — {medal_name}")
-			return
-
-def show_status():
-	daily_needs = calculate_daily_needs(power)
-	print("=== Mission Status ===")
-	print(f"Mission day: {mission_day} of {mission_length}")
-	print(f"Crew members: {crew_size}")
-	print(f"Oxygen reserve: {oxygen} ({reserve_label(oxygen)})")
-	print(f"Water reserve: {water} ({reserve_label(water)})")
-	print(f"Food reserve: {food} ({reserve_label(food)})")
-	print(f"Battery charge: {power}/{battery_capacity} ({reserve_label(power)})")
-	print("Recycler status uses the current battery level.")
-	print(f"Water recycler: {daily_needs['recycler_status']}")
-	print(f"Net water needed per shift: {daily_needs['net_water_drawn']}")
-	greenhouse_status = "ON" if greenhouse_enabled else "OFF"
-	print(f"Greenhouse: {greenhouse_status} ({greenhouse_grow_shifts}/{greenhouse_harvest_after} successful shifts toward harvest)")
-	print(f"Solar generation today: {solar_generation_for_day(mission_day)}")
-	print(f"Science requested: {'Yes' if optional_science_enabled else 'No'}")
-	if mission_day == science_fault_day:
-		print("Science instrument unavailable today due to the day-5 fault.")
-	print(f"Science observations collected: {science_observations}")
-	for finding_day, finding in science_findings:
-		print(f"Science finding from day {finding_day}: {finding}.")
-	print(f"Rover survey data collected: {rover_data}")
-	print(f"Mission aborted: {'Yes' if mission_aborted else 'No'}")
-	if mission_aborted:
-		print(f"Abort reason: {abort_reason}")
-		print(f"Abort day: {abort_day}")
+			return f"MISSION SUCCESS — {medal_name}"
+	return "MISSION FAILED — rover data did not reach Bronze."
 
 def calculate_daily_needs(battery_charge):
 	oxygen_needed = crew_size * oxygen_use_per_crew_member_per_day
@@ -248,395 +226,389 @@ def calculate_daily_needs(battery_charge):
 		"recycler_status": recycler_status,
 	}
 
-def show_supply_forecast():
-	print("=== Supply Forecast ===")
-	if mission_aborted:
-		print("The mission is aborted; there are no normal mission days to forecast.")
-		return
-	print("Supply estimates are followed by a day-by-day battery projection.")
-	if mission_complete:
-		mission_days_remaining = 0
-		print("No mission days remain.")
-	else:
-		mission_days_remaining = mission_length - mission_day + 1
-		print(f"Mission days remaining, including today: {mission_days_remaining}")
+def save_game_state():
+	for state_name in (
+		"mission_day", "mission_complete", "mission_aborted", "abort_reason", "abort_day",
+		"oxygen", "water", "food", "power", "shadow_days", "greenhouse_enabled",
+		"greenhouse_grow_shifts", "optional_science_enabled", "science_observations",
+		"science_findings", "rover_data", "repair_kit_available", "repair_pending",
+		"emergency_delivery_used", "delivery_pending", "equipment_breakdown_pending",
+		"mission_log", "pending_response_word", "pending_response_deadline",
+	):
+		st.session_state[state_name] = globals()[state_name]
 
-	daily_needs = calculate_daily_needs(power)
-	print("Recycler estimate uses the current battery level.")
-	print(f"Water recycler: {daily_needs['recycler_status']}; net water per shift: {daily_needs['net_water_drawn']}.")
-	supplies = [
-		("Oxygen", oxygen, daily_needs["oxygen_needed"]),
-		("Water", water, daily_needs["net_water_drawn"]),
-		("Food", food, daily_needs["food_needed"]),
+def finish_shift(trade_choices):
+	global mission_day, mission_complete
+	for supply_name, amount in (("oxygen", oxygen), ("water", water), ("food", food)):
+		if amount <= critical_line and trade_choices[supply_name] == "Trade":
+			if power - critical_trade_battery_cost >= critical_line:
+				globals()[supply_name] += critical_trade_supply_amount
+				globals()["power"] -= critical_trade_battery_cost
+				st.success(f"Trade complete: added 15 {supply_name} for 20 battery points.")
+			else:
+				st.warning(f"Trade unavailable for {supply_name}; battery must stay at or above the critical line.")
+
+	depleted_supplies = [
+		name for name, amount in (("oxygen", oxygen), ("water", water), ("food", food), ("power", power))
+		if amount <= 0
 	]
+	if depleted_supplies:
+		record_abort(f"Required reserve depleted: {', '.join(depleted_supplies)}.")
+	elif mission_aborted:
+		pass
+	elif mission_day == mission_length:
+		mission_complete = True
+		st.session_state["mission_complete"] = True
+	else:
+		mission_day += 1
+	save_game_state()
 
-	for supply_name, reserve_amount, daily_need in supplies:
-		if daily_need == 0:
-			print(f"{supply_name}: daily need is zero; no division needed. COVERED")
-			continue
+def simulate_shift(trade_choices):
+	global mission_day, mission_complete, oxygen, water, food, power
+	global greenhouse_grow_shifts, repair_kit_available, repair_pending
+	global delivery_pending, emergency_delivery_used, equipment_breakdown_pending
+	global optional_science_enabled, science_observations, science_findings
+	global mission_aborted, abort_reason, abort_day, pending_response_word, pending_response_deadline
 
-		full_days_supported = reserve_amount // daily_need
-		if full_days_supported >= mission_days_remaining:
-			coverage = "COVERED"
+	if mission_aborted or mission_complete:
+		st.info("The mission is stopped; no shift was simulated.")
+		return
+
+	today_solar = solar_generation_for_day(mission_day)
+	if mission_day >= 3 and repair_kit_available:
+		today_solar = 0
+	temporary_battery = min(battery_capacity, power + today_solar)
+	daily_needs = calculate_daily_needs(temporary_battery)
+	supplies = (
+		("oxygen", oxygen, daily_needs["oxygen_needed"]),
+		("water", water, daily_needs["net_water_drawn"]),
+		("food", food, daily_needs["food_needed"]),
+		("battery", temporary_battery, daily_needs["power_needed"]),
+	)
+	shortfalls = [name for name, amount, need in supplies if amount < need]
+	if shortfalls:
+		record_abort(f"Not enough {', '.join(shortfalls)} to meet this shift's requirements.")
+		st.error(f"Shift stopped: not enough {', '.join(shortfalls)}.")
+		save_game_state()
+		return
+
+	st.success(f"Mission day {mission_day} simulated successfully.")
+	temporary_battery -= daily_needs["power_needed"]
+	oxygen -= daily_needs["oxygen_needed"]
+	water -= daily_needs["net_water_drawn"]
+	food -= daily_needs["food_needed"]
+	if greenhouse_enabled:
+		greenhouse_grow_shifts += 1
+		if greenhouse_grow_shifts >= greenhouse_harvest_after:
+			food += greenhouse_food_reward
+			greenhouse_grow_shifts = 0
+			st.success(f"Greenhouse harvest added {greenhouse_food_reward} food points.")
+
+	if repair_pending:
+		if temporary_battery - 2 >= critical_line:
+			temporary_battery -= 2
+			repair_kit_available = False
+			repair_pending = False
+			st.success("Solar fault repaired.")
 		else:
-			coverage = "SHORTFALL"
-		print(f"{supply_name}: supports {full_days_supported} full days; {coverage}")
-	show_power_forecast()
+			st.warning("Solar repair remains pending; battery must stay at or above the critical line.")
+	elif delivery_pending:
+		if temporary_battery - emergency_delivery_cost >= critical_line:
+			temporary_battery -= emergency_delivery_cost
+			delivery_pending = False
+			emergency_delivery_used = True
+			if equipment_breakdown_pending:
+				equipment_breakdown_pending = False
+			st.success("Emergency help arrived, repaired equipment, and delivered no supplies.")
+		else:
+			st.warning("Emergency help remains pending; battery must stay at or above the critical line.")
 
-def show_power_forecast():
-	print("=== Power Forecast ===")
-	if mission_aborted:
-		print("The mission is aborted; there are no normal mission days to forecast.")
-		return
-	if mission_complete:
-		print("The mission is complete; there are no normal mission days to forecast.")
-		return
-	if mission_day > mission_length:
-		print("There are no normal mission days left to forecast.")
+	if optional_science_enabled:
+		if mission_day == science_fault_day:
+			st.warning("Science instrument unavailable today due to the day-5 fault.")
+		elif temporary_battery - science_power >= critical_line:
+			temporary_battery -= science_power
+			science_observations += 1
+			finding = random.choice(science_finding_options)
+			science_findings.append((mission_day, finding))
+			st.success(f"Science finding: {finding}.")
+		else:
+			optional_science_enabled = False
+			st.warning("Science paused to keep the battery at or above the critical line.")
+
+	power = temporary_battery
+	if mission_day == science_fault_day and not emergency_delivery_used and not delivery_pending:
+		pending_response_word = "HELP"
+	elif (
+		mission_day < mission_length
+		and mission_day != science_fault_day
+		and not emergency_delivery_used
+		and not delivery_pending
+		and not equipment_breakdown_pending
+		and random.random() < 0.2
+	):
+		pending_response_word = "REPAIR"
+
+	if pending_response_word:
+		equipment_breakdown_pending = True
+		pending_response_deadline = time.monotonic() + 10
+		st.session_state["emergency_response_text"] = ""
+		st.warning(f"Equipment breakdown! Type {pending_response_word} within 10 seconds to request help.")
+		save_game_state()
 		return
 
+	finish_shift(trade_choices)
+
+def handle_emergency_response(response, trade_choices):
+	global pending_response_word, pending_response_deadline, power
+	global delivery_pending, emergency_delivery_used, equipment_breakdown_pending
+	if time.monotonic() > pending_response_deadline:
+		record_abort(f"Timed response for {pending_response_word} expired.")
+		st.error("Time expired. The mission has stopped.")
+	else:
+		if response.strip().upper() == pending_response_word:
+			if mission_day == mission_length:
+				if power - emergency_delivery_cost >= critical_line:
+					power -= emergency_delivery_cost
+					emergency_delivery_used = True
+					equipment_breakdown_pending = False
+					st.success("Final-shift emergency help arrived and repaired the equipment.")
+				else:
+					equipment_breakdown_pending = False
+					st.warning("Help could not arrive without crossing the critical battery line; no shifts remain.")
+			else:
+				delivery_pending = True
+				st.success("Emergency help requested. It will cost 10 battery points after a successful shift.")
+		else:
+			st.info(f"The exact word {pending_response_word} was not entered. No help was requested.")
+	pending_response_word = None
+	pending_response_deadline = None
+	if not mission_aborted:
+		finish_shift(trade_choices)
+	else:
+		save_game_state()
+
+def build_power_forecast():
 	projected_battery = power
-	projected_science_enabled = optional_science_enabled
-	solar_by_day = []
-	days_with_normal_solar = 0
-
+	projected_science = optional_science_enabled
+	forecast = []
 	for forecast_day in range(mission_day, mission_length + 1):
 		today_solar = solar_generation_for_day(forecast_day)
-		fault_is_unrepaired = forecast_day >= 3 and repair_kit_available
-		if fault_is_unrepaired:
+		if forecast_day >= 3 and repair_kit_available:
 			today_solar = 0
-		solar_by_day.append((forecast_day, today_solar))
-		if today_solar == normal_solar:
-			days_with_normal_solar += 1
-
-	print(f"Base daily life-support power need is {life_support_power_use_per_day} points, plus {water_recovery_power_use} recycler point when projected battery is above {warning_line}. {days_with_normal_solar} days have solar generation of {normal_solar} points.")
-
-	for forecast_day, today_solar in solar_by_day:
 		projected_battery = min(battery_capacity, projected_battery + today_solar)
 		daily_needs = calculate_daily_needs(projected_battery)
-		essential_power_needed = daily_needs["power_needed"]
-
-		if projected_battery < essential_power_needed:
-			print(f"Projected essential power cannot cover day {forecast_day}: have {projected_battery}, need {essential_power_needed}.")
-			print("Power forecast stopped.")
-			return
-
-		projected_battery -= essential_power_needed
-		estimated_battery_use = essential_power_needed
-		science_included_today = False
-		if projected_science_enabled:
-			if forecast_day == science_fault_day:
-				print("Optional science is unavailable due to the day-5 fault.")
-			elif projected_battery - science_power >= critical_line:
+		if projected_battery < daily_needs["power_needed"]:
+			forecast.append({"day": forecast_day, "solar": today_solar, "stopped": True})
+			break
+		projected_battery -= daily_needs["power_needed"]
+		science_included = False
+		if projected_science and forecast_day != science_fault_day:
+			if projected_battery - science_power >= critical_line:
 				projected_battery -= science_power
-				estimated_battery_use += science_power
-				science_included_today = True
+				science_included = True
 			else:
-				projected_science_enabled = False
-				print("Optional science would pause to preserve essential power and the critical battery reserve.")
-		science_note = " [science instrument included]" if science_included_today else ""
-		print(f"Day {forecast_day}: recycler {daily_needs['recycler_status']}; water drawn {daily_needs['net_water_drawn']}; estimated battery use is {estimated_battery_use} points{science_note}; projected charge is {projected_battery}/{battery_capacity} after {today_solar} solar points.")
+				projected_science = False
+		forecast.append({
+			"day": forecast_day,
+			"solar": today_solar,
+			"recycler": daily_needs["recycler_status"],
+			"water": daily_needs["net_water_drawn"],
+			"battery": projected_battery,
+			"science": science_included,
+			"stopped": False,
+		})
+	return forecast
 
-	print("This forecast excludes rover survey costs and one-time repair/help costs.")
+if st.session_state["console_exited"]:
+	st.info("Mission console exited.")
+	st.stop()
 
-print("Welcome to Lunar Horizon Mission Control.")
-print("=== Mission Briefing ===")
-print(f"Difficulty: {difficulty}")
-print(f"Crew members: {crew_size}")
-print(f"Planned mission shifts: {mission_length}")
-print(f"Extra supply shifts: {extra_supply_shifts}")
-print(f"Daily life-support power need: {life_support_power_use_per_day} points")
-print(f"Scheduled solar-generation days: {mission_length - len(shadow_days)} of {mission_length} (varies each mission)")
-print("Starting reserves:")
-print(f"Oxygen: {oxygen}")
-print(f"Water: {water}")
-print(f"Food: {food}")
-print(f"Battery: {power}/{battery_capacity}")
+pending_response = st.session_state["pending_response_word"] is not None
+trade_choices = {}
 
-mission_log = []
+with st.sidebar:
+	st.divider()
+	st.header("Mission Actions")
+	with st.expander("Space trade choices"):
+		st.caption("Choose what to trade only if a reserve reaches the critical line after a shift.")
+		for supply_name in ("oxygen", "water", "food"):
+			trade_choices[supply_name] = st.selectbox(
+				f"Trade battery for {supply_name}?",
+				("No trade", "Trade"),
+				key=f"trade_{supply_name}",
+				disabled=pending_response,
+			)
 
-while True:
-	print("=== Mission Menu ===")
-	print("L - Open the Mission Log")
-	print("S - Show the whole Mission Log")
-	print("V - View mission status")
-	print("A - Simulate one life-support day")
-	print("F - Forecast life-support supplies")
-	print("H - Toggle greenhouse plan")
-	print("O - Run robotic route survey")
-	print("T - Toggle science instrument")
-	print("R - Request solar fault repair")
-	print("G - Show the game guide")
-	print("Q - Abort the mission")
-	print("X - Exit the console")
-	menu_choice = input("Choose an option: ").strip().upper()
-	if menu_choice == "L":
-		while True:
-			shift_note = input("Write your mission note: ")
-			mission_log.append((mission_day, shift_note))
-			print("=== Mission Log ===")
-			print(shift_note)
-			while True:
-				print("=== Mission Log Options ===")
-				print("L - Write another note")
-				print("M - Return to the Mission Menu")
-				log_choice = input("Choose a log option: ").strip().upper()
-				if log_choice in ("L", "M"):
-					break
-				print("Please choose L or M.")
-			if log_choice == "M":
-				break
-	elif menu_choice == "S":
-		print("=== Mission Log ===")
-		if mission_log:
-			for note_number, (note_day, note) in enumerate(mission_log, start=1):
-				print(f"{note_number}. Day {note_day}: {note}")
+	if st.button("Simulate one shift", disabled=pending_response, use_container_width=True):
+		simulate_shift(trade_choices)
+	show_forecast = st.button("Forecast supplies", disabled=pending_response, use_container_width=True)
+	if st.button("Toggle greenhouse", disabled=pending_response, use_container_width=True):
+		greenhouse_enabled = not greenhouse_enabled
+		st.session_state["greenhouse_enabled"] = greenhouse_enabled
+	if st.button("Run rover survey", disabled=pending_response, use_container_width=True):
+		if mission_aborted or mission_complete:
+			st.info("Rover survey unavailable; the mission is stopped.")
+		elif mission_day in shadow_days:
+			st.warning("Rover survey unavailable on a shadow day.")
+		elif power - rover_survey_power_cost < critical_line:
+			st.warning("Rover survey blocked; spending 8 battery points would cross the critical line.")
 		else:
-			print("No notes have been written this run.")
-	elif menu_choice == "V":
-		show_status()
-	elif menu_choice == "A":
+			power -= rover_survey_power_cost
+			if random.random() < 0.7:
+				rover_data += 1
+				st.success("Rover returned useful survey data.")
+			else:
+				st.info("Rover returned without usable data.")
+			save_game_state()
+	if st.button("Toggle science", disabled=pending_response, use_container_width=True):
+		optional_science_enabled = not optional_science_enabled
+		st.session_state["optional_science_enabled"] = optional_science_enabled
+	if st.button("Request solar repair", disabled=pending_response, use_container_width=True):
+		if mission_day < 3:
+			st.info("No solar fault has happened yet; repair is available from day 3.")
+		elif not repair_kit_available:
+			st.info("Solar fault is already repaired.")
+		elif repair_pending:
+			st.info("Solar repair is already pending.")
+		else:
+			repair_pending = True
+			st.session_state["repair_pending"] = repair_pending
+			st.success("Solar repair requested; it will be attempted after a successful shift.")
+	show_status = st.button("View mission status", disabled=pending_response, use_container_width=True)
+	show_guide = st.button("Show game guide", disabled=pending_response, use_container_width=True)
+	if st.button("Abort mission", disabled=pending_response, use_container_width=True):
+		record_abort("Mission stopped by operator.")
+	if st.button("Exit console", disabled=pending_response, use_container_width=True):
+		st.session_state["console_exited"] = True
+		st.rerun()
+
+	if st.session_state["pending_response_word"] is not None:
+		response_word = st.session_state["pending_response_word"]
+		st.warning("Emergency response required")
+		with st.form("emergency_response_form"):
+			response_text = st.text_input(
+				f"Type {response_word} to request emergency help",
+				key=f"emergency_response_text_{mission_day}_{response_word}",
+			)
+			response_submitted = st.form_submit_button("Send emergency response")
+		if response_submitted:
+			handle_emergency_response(response_text, trade_choices)
+
+briefing_tab, data_tab, systems_tab, log_tab = st.tabs(
+	("Mission Briefing", "Mission Data", "Mission Systems", "Mission Log")
+)
+
+with briefing_tab:
+	st.subheader("Mission Briefing")
+	st.write(f"Difficulty: {difficulty}")
+	st.write(f"Mission day: {mission_day} of {mission_length}")
+	st.write(f"Crew members: {crew_size}")
+	st.write(f"Extra supply shifts: {extra_supply_shifts}")
+	st.write(f"Scheduled solar-generation days: {mission_length - len(shadow_days)} of {mission_length}")
+	st.write(f"Mission status: {'Aborted' if mission_aborted else 'Complete' if mission_complete else 'In progress'}")
+	if mission_complete or mission_aborted:
+		st.subheader("Mission Result")
+		result = show_final_result()
 		if mission_aborted:
-			print("Mission aborted. No further shifts can be simulated.")
-		elif mission_complete:
-			print("Mission is already complete. No supplies were used.")
+			st.error(f"{result} (day {abort_day})")
+		elif result and result.startswith("MISSION SUCCESS"):
+			st.success(result)
 		else:
-			today_solar = solar_generation_for_day(mission_day)
-			solar_fault_unrepaired = mission_day >= 3 and repair_kit_available
-			if solar_fault_unrepaired:
-				today_solar = 0
-			battery_with_solar = power + today_solar
-			temporary_battery = min(battery_capacity, battery_with_solar)
-			unused_solar = max(0, battery_with_solar - battery_capacity)
-			daily_needs = calculate_daily_needs(temporary_battery)
-			supplies = [
+			st.error(result or "Mission ended without a result.")
+
+with data_tab:
+	st.subheader("Supplies")
+	oxygen_column, water_column, food_column, power_column = st.columns(4)
+	oxygen_column.metric("Oxygen", oxygen)
+	water_column.metric("Water", water)
+	food_column.metric("Food", food)
+	power_column.metric("Battery", f"{power}/{battery_capacity}")
+
+	st.subheader("Mission Data")
+	rover_column, science_column = st.columns(2)
+	rover_column.metric("Rover data", rover_data)
+	science_column.metric("Science observations", science_observations)
+	if science_findings:
+		for finding_day, finding in science_findings:
+			st.write(f"Science finding from day {finding_day}: {finding}.")
+
+	if show_status:
+		daily_needs = calculate_daily_needs(power)
+		st.subheader("Current Status Details")
+		st.write(f"Oxygen: {oxygen} ({reserve_label(oxygen)})")
+		st.write(f"Water: {water} ({reserve_label(water)})")
+		st.write(f"Food: {food} ({reserve_label(food)})")
+		st.write(f"Battery: {power}/{battery_capacity} ({reserve_label(power)})")
+		st.write(f"Water recycler: {daily_needs['recycler_status']}")
+		st.write(f"Net water needed per shift: {daily_needs['net_water_drawn']}")
+		st.write(f"Solar generation today: {solar_generation_for_day(mission_day)} points")
+
+	if show_forecast:
+		st.subheader("Supply and Power Forecast")
+		if mission_aborted:
+			st.info("The mission is aborted; there are no normal mission days to forecast.")
+		else:
+			mission_days_remaining = 0 if mission_complete else mission_length - mission_day + 1
+			st.write(f"Mission days remaining: {mission_days_remaining}")
+			daily_needs = calculate_daily_needs(power)
+			for name, amount, need in (
 				("Oxygen", oxygen, daily_needs["oxygen_needed"]),
 				("Water", water, daily_needs["net_water_drawn"]),
 				("Food", food, daily_needs["food_needed"]),
-				("Life-support power", temporary_battery, daily_needs["power_needed"]),
-			]
-			shortfalls = [
-				(supply_name, reserve_amount, daily_need)
-				for supply_name, reserve_amount, daily_need in supplies
-				if reserve_amount < daily_need
-			]
-			if shortfalls:
-				shortfall_names = ", ".join(
-					supply_name.lower() for supply_name, _, _ in shortfalls
-				)
-				reason = f"Not enough {shortfall_names} to meet this shift's requirements."
-				record_abort(reason)
-				print(f"CREW SAFETY EMERGENCY — {reason}")
-				print("Reserves and the mission day are unchanged.")
-				print("Supplies needing attention:")
-				for supply_name, reserve_amount, daily_need in shortfalls:
-					print(f"{supply_name}: have {reserve_amount}, need {daily_need}.")
-				print("Normal mission simulation has stopped.")
+			):
+				full_days = amount // need if need else mission_days_remaining
+				coverage = "COVERED" if full_days >= mission_days_remaining else "SHORTFALL"
+				st.write(f"{name}: supports {full_days} full shifts; {coverage}")
+			if mission_complete:
+				st.info("The mission is complete; there are no normal mission days to forecast.")
 			else:
-				print(f"Mission day {mission_day} simulated successfully.")
-				temporary_battery -= daily_needs["power_needed"]
-				oxygen -= daily_needs["oxygen_needed"]
-				water -= daily_needs["net_water_drawn"]
-				food -= daily_needs["food_needed"]
-				if greenhouse_enabled:
-					greenhouse_grow_shifts += 1
-					print(f"Greenhouse growth: {greenhouse_grow_shifts}/{greenhouse_harvest_after} successful shifts.")
-					if greenhouse_grow_shifts >= greenhouse_harvest_after:
-						food += greenhouse_food_reward
-						greenhouse_grow_shifts = 0
-						print(f"Greenhouse harvest! Added {greenhouse_food_reward} fictional food points.")
-				if repair_pending:
-					if temporary_battery - 2 >= critical_line:
-						temporary_battery -= 2
-						repair_kit_available = False
-						repair_pending = False
-						print("Solar fault repaired.")
-					else:
-						print("Solar repair remains pending; battery must stay at or above the critical line.")
-				elif delivery_pending:
-					if temporary_battery - emergency_delivery_cost >= critical_line:
-						temporary_battery -= emergency_delivery_cost
-						delivery_pending = False
-						emergency_delivery_used = True
-						if equipment_breakdown_pending:
-							equipment_breakdown_pending = False
-							print("Delivery arrived; equipment failure repaired. It cost 10 battery points and delivered no supplies.")
-					else:
-						print("Emergency help remains pending; battery must stay at or above the critical line.")
-				if optional_science_enabled:
-					if mission_day == science_fault_day:
-						print("Science instrument unavailable today due to the day-5 fault.")
-					elif temporary_battery - science_power >= critical_line:
-						temporary_battery -= science_power
-						science_observations += 1
-						finding = random.choice(science_finding_options)
-						science_findings.append((mission_day, finding))
-						print(f"Science finding: {finding}.")
-					else:
-						optional_science_enabled = False
-						print("Science paused; battery must stay at or above the critical line.")
-				power = temporary_battery
-				if mission_day == science_fault_day and not emergency_delivery_used and not delivery_pending:
-					breakdown_response_word = "HELP"
-				elif (
-					mission_day < mission_length
-					and mission_day != science_fault_day
-					and not emergency_delivery_used
-					and not delivery_pending
-					and not equipment_breakdown_pending
-					and random.random() < 0.2
-				):
-					breakdown_response_word = "REPAIR"
-				else:
-					breakdown_response_word = None
-				if breakdown_response_word is not None:
-					equipment_breakdown_pending = True
-					print("Equipment breakdown!")
-					repair_response = timed_repair_input(breakdown_response_word)
-					if repair_response == breakdown_response_word:
-						if mission_day == mission_length:
-							if power - emergency_delivery_cost >= critical_line:
-								power -= emergency_delivery_cost
-								emergency_delivery_used = True
-								equipment_breakdown_pending = False
-								print("Final-shift emergency help arrived, repaired the equipment, and cost 10 battery points.")
-							else:
-								equipment_breakdown_pending = False
-								print("Emergency help could not arrive because 10 battery points would cross the critical line; the request is closed because no shifts remain.")
-						else:
-							delivery_pending = True
-							print("Emergency help requested; it costs 10 battery points when it arrives after a successful shift.")
-					elif repair_response is None:
-						record_abort(f"Timed response for {breakdown_response_word} expired.")
-						print("CREW SAFETY EMERGENCY — timed response expired.")
-						print("Normal mission simulation has stopped.")
-					else:
-						print("No emergency help requested.")
-				if not mission_aborted:
-					critical_supplies = [
-						("oxygen", oxygen),
-						("water", water),
-						("food", food),
-					]
-					for supply_name, reserve_amount in critical_supplies:
-						if reserve_amount <= critical_line:
-							if power - critical_trade_battery_cost >= critical_line:
-								trade_choice = input(
-									f"{supply_name.title()} is at the critical line. Trade 20 battery for 15 {supply_name}? (Y/N): "
-								).strip().upper()
-								if trade_choice == "Y":
-									power -= critical_trade_battery_cost
-									if supply_name == "oxygen":
-										oxygen += critical_trade_supply_amount
-									elif supply_name == "water":
-										water += critical_trade_supply_amount
-									else:
-										food += critical_trade_supply_amount
-									print(f"Trade complete: 15 {supply_name} added for 20 battery points.")
-							else:
-								print(f"Trade unavailable for {supply_name}; battery must remain at or above the critical line.")
-				if unused_solar > 0:
-					print(f"Unused solar due to full battery: {unused_solar}.")
-				print("Final reserves:")
-				print(f"Oxygen: {oxygen}")
-				print(f"Water: {water}")
-				print(f"Food: {food}")
-				print(f"Battery: {power}/{battery_capacity}")
-				if oxygen <= 0 or water <= 0 or food <= 0 or power <= 0:
-					depleted_names = ", ".join(
-						name for name, amount in (("oxygen", oxygen), ("water", water), ("food", food), ("power", power))
-						if amount <= 0
+				for forecast_day in build_power_forecast():
+					if forecast_day["stopped"]:
+						st.warning(f"Essential power cannot cover day {forecast_day['day']}; forecast stopped.")
+						break
+					science_note = ", optional science included" if forecast_day["science"] else ""
+					st.write(
+						f"Day {forecast_day['day']}: {forecast_day['solar']} solar points, "
+						f"recycler {forecast_day['recycler']}, water drawn {forecast_day['water']}, "
+						f"projected battery {forecast_day['battery']}/{battery_capacity}{science_note}."
 					)
-					reason = f"Required reserve depleted: {depleted_names}."
-					record_abort(reason)
-					print(f"CREW SAFETY EMERGENCY — {reason}")
-					print("Normal mission simulation has stopped.")
-				elif mission_aborted:
-					print("Normal mission simulation has stopped.")
-				elif mission_day == mission_length:
-					mission_complete = True
-					show_final_result()
-				else:
-					mission_day += 1
-	elif menu_choice == "F":
-		show_supply_forecast()
-	elif menu_choice == "T":
-		optional_science_enabled = not optional_science_enabled
-		if optional_science_enabled:
-			print("Science instrument requested.")
+
+with systems_tab:
+	st.subheader("Mission Systems")
+	st.write(f"Greenhouse: {'On' if greenhouse_enabled else 'Off'} ({greenhouse_grow_shifts}/{greenhouse_harvest_after} shifts toward harvest)")
+	st.write(f"Science instrument requested: {'Yes' if optional_science_enabled else 'No'}")
+	st.write(f"Solar generation today: {solar_generation_for_day(mission_day)} points")
+	st.write(f"Solar repair kit available: {'Yes' if repair_kit_available else 'No'}")
+	st.write(f"Solar repair pending: {'Yes' if repair_pending else 'No'}")
+	st.write(f"Emergency help pending: {'Yes' if delivery_pending else 'No'}")
+	if show_guide:
+		st.subheader("Game Guide")
+		st.write("Finish the planned shifts with enough oxygen, water, food, battery, and rover data to earn a medal.")
+		st.write("The recycler recovers half the water and uses 1 battery point only when the battery is above the warning line. Otherwise, it pauses.")
+		st.write("Greenhouse costs 2 water and 2 battery points on each successful shift. Three successful shifts add 10 food points.")
+		st.write("Solar-generation days are randomized. An unrepaired solar fault stops solar generation from day 3; request repair on or after day 3, then a successful shift uses the repair kit and 2 battery points.")
+		st.write("Science uses 6 battery points and records one fictional finding when it runs. It is unavailable on day 5 and pauses if it would cross the critical battery line.")
+		st.write("A rover survey costs 8 battery points, is unavailable on shadow days, and has a 70% chance of adding one rover data point.")
+		st.write("If oxygen, water, or food is at or below the critical line after a shift, you can trade 20 battery points for 15 points of that supply, if the battery stays at or above the critical line.")
+		st.write("Day 5 may require typing HELP within 10 seconds. Other eligible shifts have a 20% chance of requiring REPAIR within 10 seconds. Emergency help costs 10 battery points, repairs equipment, and delivers no supplies.")
+		st.write("If a shift cannot cover essential needs, or a required reserve reaches zero, the mission stops.")
+		st.write(f"Medals require at least {medal_data['Bronze']} rover data for Bronze, with higher targets for Silver and Gold. Each main supply and battery must finish above {supply_minimum}.")
+
+with log_tab:
+	st.subheader("Mission Log")
+	with st.form("mission_note_form", clear_on_submit=True):
+		note_text = st.text_area("Write a mission note", disabled=pending_response)
+		save_note = st.form_submit_button("Save mission note", disabled=pending_response)
+	if save_note:
+		if note_text.strip():
+			mission_log.append((mission_day, note_text.strip()))
+			st.success("Mission note saved.")
+			save_game_state()
 		else:
-			print("Science instrument paused.")
-	elif menu_choice == "H":
-		greenhouse_enabled = not greenhouse_enabled
-		if greenhouse_enabled:
-			print("Greenhouse plan enabled; no supplies are spent by toggling it on.")
-		else:
-			print("Greenhouse plan disabled; no supplies are spent by toggling it off.")
-	elif menu_choice == "O":
-		if mission_aborted or mission_complete:
-			print("Rover survey unavailable; the mission is stopped.")
-		elif mission_day in shadow_days:
-			print("Rover survey unavailable on a shadow day.")
-		elif power - rover_survey_power_cost < critical_line:
-			print("Rover survey blocked; spending 8 battery points would cross the critical line.")
-		else:
-			power -= rover_survey_power_cost
-			print("Robotic route survey started; it cost 8 fictional battery points.")
-			if random.random() < 0.7:
-				rover_data += 1
-				print("Rover returned useful survey data.")
-			else:
-				print("Rover returned without usable data.")
-	elif menu_choice == "R":
-		if mission_day < 3:
-			print("No solar fault has happened yet; repair is unavailable until day 3.")
-		elif not repair_kit_available:
-			print("Solar fault is already repaired; repair is unavailable.")
-		elif repair_pending:
-			print("Solar repair is already pending.")
-		else:
-			repair_pending = True
-			print("Solar repair requested; it will be attempted after a successful shift.")
-	elif menu_choice == "G":
-		print("=== Mission Console Guide ===")
-		print("Goal: finish the planned mission days while keeping essential supplies available.")
-		print("L: write a mission log note. S: show all saved notes from this run.")
-		print("V: view current reserves and mission status.")
-		print("F: compare oxygen, water, and food with daily needs to estimate supported full days, then project battery one day at a time.")
-		print("The recycler uses 1 extra power point and recovers 50% of water only when battery is above the warning line; at or below it, the recycler pauses.")
-		print("For 4 crew, gross water use is 4 x 4 = 16 per shift. With the recycler on, net water is 8; with it paused, water use is all 16.")
-		print("Solar-generation days are randomized for each mission; the battery projection shows each day's solar points, including shadow days and the unrepaired day-3 fault.")
-		print("The battery projection subtracts essential power and requested science, and stops if essential power cannot cover a day.")
-		print("Forecasts do not change real reserves or the mission day, and exclude rover survey costs and one-time repair/help costs.")
-		print("A: simulate one shift. It uses supplies only when essential needs are covered.")
-		print("H: toggle the fictional greenhouse plan on or off. Toggling costs nothing; when on, each successful shift needs 2 extra water and 2 extra power points.")
-		print("The greenhouse counter increases only after successful shifts. After 3 such shifts, it adds 10 fictional food points and resets to zero.")
-		print("T: switch optional science on or off. When it runs, it uses 6 battery points and reports a randomized fictional finding; it pauses if that would cross the critical line.")
-		print("The science instrument is unavailable on day 5 because of a fictional fault; it uses no power and collects nothing that day.")
-		print("Science records an observation when it runs; it does not create battery or supplies because an instrument measures data rather than producing resources.")
-		print("O: run a robotic route survey for 8 fictional battery points. It is unavailable on shadow days and only starts if at least the critical battery line remains.")
-		print("A survey has a 70% chance to add 1 rover data; it never changes crew supplies or mission day.")
-		print("If oxygen, water, or food reaches the critical line after a shift, you can trade 20 battery points for 15 of that supply if at least the critical battery line will remain.")
-		print("R: request the day-3 solar repair; it uses the repair kit and battery after a successful shift.")
-		print("A day-5 science fault prompts you to type HELP within 10 seconds. On other eligible days, a random equipment breakdown may prompt you to type REPAIR.")
-		print("Emergency help is a separate repair-only delivery: it costs 10 battery points when it arrives after a successful shift, adds no supplies, and resolves the breakdown.")
-		print("If essential reserves cannot cover a shift or a required reserve reaches zero, a crew safety emergency records the reason and stops simulation.")
-		print("Q: stop the mission as operator; the reason and mission day are saved. X: exit the console.")
-		print(f"Medals require finishing safely with at least {medal_data['Bronze']} rover data and oxygen, water, food, and power each above {supply_minimum}.")
-		print(f"Rover data medal levels: Bronze {medal_data['Bronze']}, Silver {medal_data['Silver']}, Gold {medal_data['Gold']}; the highest earned medal is awarded.")
-		print("These are invented classroom game thresholds, not real spaceflight standards.")
-		print("All resource values are fictional classroom game points.")
-	elif menu_choice == "Q":
-		if mission_complete:
-			print("The planned mission is already complete.")
-		elif mission_aborted:
-			print(f"Mission already stopped: {abort_reason} (day {abort_day}).")
-		else:
-			record_abort("Mission stopped by operator.")
-			print("MISSION STOPPED BY OPERATOR — the mission ended on request.")
-			print("Normal mission simulation has stopped.")
-	elif menu_choice == "X":
-		print("=== End of Log ===")
-		break
+			st.info("Write a note before saving it.")
+	if mission_log:
+		for note_number, (note_day, note) in enumerate(mission_log, start=1):
+			st.write(f"{note_number}. Day {note_day}: {note}")
 	else:
-		print("Please choose L, S, V, A, F, H, O, T, R, G, Q, or X.")
+		st.info("No mission notes have been written.")
